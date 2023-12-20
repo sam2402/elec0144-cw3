@@ -57,7 +57,7 @@ def clamp(x: Number , low: Number, high: Number) -> Number:
     '''
     return max(min(x, high), low)
 
-def e_greedy(t: int, rate = 0.01, e_min = 0.4) -> float:
+def e_greedy(t: int, rate = 0.01, e_min = 0.1) -> float:
     '''
     Epsilon function as used in the epsilon-greedy method
     Its value is constrained to be between 1 and e_min.
@@ -163,8 +163,8 @@ def run_episode(grid: GridType, curr_table: TableType, t: int) -> TableType:
 
         # A random action is taken if a < e(t) or all Q-values for the current state are equal
         # Otherwise the action with the greatest Q-value is used
-        direction = random.choice(list(DIRECTIONS.keys())) if a < e_greedy(t) or len(set(curr_table[pos[0]][pos[1]].values())) == 1 else \
-                    max(curr_table[pos[0]][pos[1]], key=curr_table[pos[0]][pos[1]].get)
+        direction = random.choice(list(DIRECTIONS.keys())) if a < e_greedy(t) or len(set(new_table[pos[0]][pos[1]].values())) == 1 else \
+                    max(new_table[pos[0]][pos[1]], key=new_table[pos[0]][pos[1]].get)
         new_pos = calculate_new_position(grid, pos, direction)
         new_cell = grid[new_pos[0]][new_pos[1]]
 
@@ -172,10 +172,10 @@ def run_episode(grid: GridType, curr_table: TableType, t: int) -> TableType:
         reward = new_cell.reward - (LIVING_REWARD if not new_cell.terminal else 0)
 
         # curr_q is the current Q-value for the current state and chosen action
-        curr_q = curr_table[pos[0]][pos[1]][direction]
+        curr_q = new_table[pos[0]][pos[1]][direction]
 
         # sample_q is the reward of going from the current state to the next state plus the discounted Q-value of the best action when in the next state
-        sample_q = reward + (DISCOUNT_FACTOR*max(curr_table[new_pos[0]][new_pos[1]].values()))
+        sample_q = reward + (DISCOUNT_FACTOR*max(new_table[new_pos[0]][new_pos[1]].values()))
 
         # Adjust the Q-value by the learning rate multiplied by the difference between the sample and current Q-value
         new_table[pos[0]][pos[1]][direction] += LEARNING_RATE*(sample_q-curr_q)

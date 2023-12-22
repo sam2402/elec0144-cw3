@@ -163,10 +163,10 @@ def run_episode(grid: GridType, curr_table: TableType, t: int) -> TableType:
 
         # A random action is taken if a < e(t) or all Q-values for the current state are equal
         # Otherwise the action with the greatest Q-value is used
-        direction = random.choice(list(DIRECTIONS.keys())) if a < e_greedy(t) or len(set(new_table[pos[0]][pos[1]].values())) == 1 else \
+        direction = random.choice(list(DIRECTIONS)) if a < e_greedy(t) or len(set(new_table[pos[0]][pos[1]].values())) == 1 else \
                     max(new_table[pos[0]][pos[1]], key=new_table[pos[0]][pos[1]].get)
-        new_pos = calculate_new_position(grid, pos, direction)
-        new_cell = grid[new_pos[0]][new_pos[1]]
+        new_row, new_col = calculate_new_position(grid, pos, direction)
+        new_cell = grid[new_row][new_col]
 
         # Calculate the reward for the action by subtracting the living reward from the cell reward if the new state is not terminal
         reward = new_cell.reward - (LIVING_REWARD if not new_cell.terminal else 0)
@@ -175,16 +175,16 @@ def run_episode(grid: GridType, curr_table: TableType, t: int) -> TableType:
         curr_q = new_table[pos[0]][pos[1]][direction]
 
         # sample_q is the reward of going from the current state to the next state plus the discounted Q-value of the best action when in the next state
-        sample_q = reward + (DISCOUNT_FACTOR*max(new_table[new_pos[0]][new_pos[1]].values()))
+        sample_q = reward + (DISCOUNT_FACTOR*max(new_table[new_row][new_col].values()))
 
         # Adjust the Q-value by the learning rate multiplied by the difference between the sample and current Q-value
         new_table[pos[0]][pos[1]][direction] += LEARNING_RATE*(sample_q-curr_q)
 
         # If the next state is terminal then return the current Q-table
-        # Otherwise set the new state to be the current state and perform another iteration
+        # Otherwise set the current state to be the new state and perform another iteration
         if new_cell.terminal == True:
             return new_table
-        pos = new_pos
+        pos = (new_row, new_col)
 
 def run_q_learning(grid: GridType) -> (list[str], list[str]):
     '''
@@ -231,5 +231,5 @@ if __name__ == "__main__":
     print("___________________________________________________________")
     print("Q-TABLE")
     print("")
-    print(("\t".join(["cell", *DIRECTIONS.keys()])).expandtabs(12))
+    print(("\t".join(["cell", *DIRECTIONS])).expandtabs(12))
     print(*table, sep="\n")

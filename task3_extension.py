@@ -155,6 +155,11 @@ def a_star(start: int,  target: int, obstacles: Set[int], heuristic):
 
 
 def make_table(start, target, obstacles, path, visited):
+    # This function generates the LaTeX code for the grid showing
+    # the result of the pathfinding process. It uses the arguments
+    # to highlight the start, target, obstacles, and visited positions
+    # in different colours.
+
     lines = []
     lines.append("\\begin{center}")
     lines.append("\\vspace{1em}")
@@ -210,10 +215,9 @@ while start is None or target is None or start in obstacles or target in obstacl
     target = random.randint(1, GRID_SIZE * GRID_SIZE)
 
 
-print("Start:", start)
-print("Target:", target)
-
 # Dijkstra
+# (Using the a_star function with a heuristic that always returns 0
+# is equivalent to Dijkstra's algorithm)
 path, visited = a_star(start, target, obstacles, heuristic=zero)
 print("Dijkstra explored", len(visited), "positions")
 

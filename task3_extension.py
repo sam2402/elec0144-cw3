@@ -1,11 +1,18 @@
-# A* Algorithm
+# A* and Dijkstra algorithms combined implementation
 
 from typing import Iterator, List, Set, Tuple
 import math
+import random
 
 
-# Defines the grid to be 6x6 in size
-GRID_SIZE = 6
+# Defines the grid to be 20x20 in size
+GRID_SIZE = 20
+
+
+def zero(position: int, target: int) -> float:
+    # Dijkstra's algorithm is the same as using A* algorithm
+    # with a heuristic function that always returns 0
+    return 0.0
 
 
 def euclidean_distance(position_1: int, position_2: int) -> float:
@@ -27,7 +34,7 @@ def inside_grid(row: int, column: int) -> bool:
     return 0 <= row < GRID_SIZE and 0 <= column < GRID_SIZE
 
 
-def neighbours(position: int, target: int, obstacles: Set[int]) -> Iterator[int]:
+def neighbours(position: int, target: int, obstacles: Set[int], heuristic) -> Iterator[int]:
     # Returns the neighbours of the current grid position which can be moved to
 
     # Turn the position into a (row, column) coordinate
@@ -62,29 +69,15 @@ def neighbours(position: int, target: int, obstacles: Set[int]) -> Iterator[int]
             g = math.sqrt(row_delta * row_delta +
                           column_delta * column_delta)
 
-            h = euclidean_distance(new_position, target)
+            h = heuristic(new_position, target)
 
             # Return the new position and the cost of moving to it
             yield new_position, g + h, g
 
 
-def save_front_set_and_visited_log(front_log: List, visited_log: List, filename: str):
-    # Save the evolution of the front set and visited set to a txt file
-    with open(filename, "w") as file:
-        for i in range(len(front_log)):
-            file.write(f"Iteration {i}:\n")
-            file.write(f"Front set: {front_log[i]}\n")
-
-            visited_set = set((f, g, position, previous)
-                              for position, (f, g, previous) in visited_log[i].items())
-            file.write(f"Visited set: {visited_set}\n\n")
-
-    print("Saved the evolution of the front set and visited set to", filename)
-
-
-def a_star(start: int,  target: int, obstacles: Set[int], filename: str):
+def a_star(start: int,  target: int, obstacles: Set[int], heuristic):
     # Create the front set and visited set
-    front = {(euclidean_distance(start, target), 0, start, None)}
+    front = {(heuristic(start, target), 0, start, None)}
     visited = {}
 
     front_log = [front.copy()]
@@ -109,7 +102,7 @@ def a_star(start: int,  target: int, obstacles: Set[int], filename: str):
             break
 
         # For every neighbouring position in the grid
-        for neighbour, edge_f, edge_g in neighbours(position, target, obstacles):
+        for neighbour, edge_f, edge_g in neighbours(position, target, obstacles, heuristic):
             neighbour_node = (g + edge_f, g + edge_g, neighbour, position)
 
             # Skip the neighbour if it has already been visited
@@ -158,14 +151,87 @@ def a_star(start: int,  target: int, obstacles: Set[int], filename: str):
             target = None
 
     print("Path:", path)
-    save_front_set_and_visited_log(front_log, visited_log, filename)
-    print("VISITED SET:", len(visited))
+    return path, visited
 
 
-# Run the A* algorithm on the 6x6 grid
-obstacles = {2, 10, 11, 20, 21, 27, 33}
-start = 16
-target = 32
+def make_table(start, target, obstacles, path, visited):
+    # This function generates the LaTeX code for the grid showing
+    # the result of the pathfinding process. It uses the arguments
+    # to highlight the start, target, obstacles, and visited positions
+    # in different colours.
 
-print("Running the A* algorithm on the 6x6 grid")
-a_star(start, target, obstacles, "a_star.txt")
+    lines = []
+    lines.append("\\begin{center}")
+    lines.append("\\vspace{1em}")
+    lines.append(
+        "\\begin{tabular}" + "{|" + "|".join(list("c" * GRID_SIZE)) + "|}")
+    lines.append("  \\hline")
+
+    for line in range(GRID_SIZE):
+        l = []
+
+        for i in range(1, GRID_SIZE + 1):
+            n = GRID_SIZE * line + i
+
+            if n in obstacles:
+                l.append("\\cellcolor{gray!35}")
+            elif n in path:
+                l.append("\\cellcolor{blue!25}")
+            elif n in visited:
+                l.append("\\cellcolor{blue!10}")
+            else:
+                l.append("")
+
+            if n == start:
+                l[-1] += "$\\triangleright$"
+            elif n == target:
+                l[-1] += "$\\oplus$"
+
+        line = " & ".join(l) + " \\\ \\hline"
+        lines.append("  " + line)
+
+    lines.append("\\end{tabular}")
+    lines.append("\\captionof{figure}{PUT CAPTION HERE}")
+    lines.append("\\end{center}")
+
+    return "\n".join(lines)
+
+
+# Runs the pathfinding with both Dijkstra's algorithm and the A* algorithm
+
+NUM_OBSTACLES = 200
+
+# Generate a random set of obstacle positions
+obstacles = set(random.randint(1, GRID_SIZE * GRID_SIZE)
+                for _ in range(NUM_OBSTACLES))
+
+start = None
+target = None
+
+# Generate a random start and target position, making
+# sure they are not at positions with obstacles
+while start is None or target is None or start in obstacles or target in obstacles:
+    start = random.randint(1, GRID_SIZE * GRID_SIZE)
+    target = random.randint(1, GRID_SIZE * GRID_SIZE)
+
+
+# Dijkstra
+# (Using the a_star function with a heuristic that always returns 0
+# is equivalent to Dijkstra's algorithm)
+path, visited = a_star(start, target, obstacles, heuristic=zero)
+print("Dijkstra explored", len(visited), "positions")
+
+# Save the LaTeX code for the grid to a file
+with open("dijkstra_large_table.txt", "w") as file:
+    table = make_table(start, target, obstacles, path, visited)
+    file.write(table)
+
+# A*
+print()
+path, visited = a_star(start, target, obstacles, heuristic=euclidean_distance)
+print("A* explored", len(visited), "positions")
+
+# Save the LaTeX code for the grid to a file
+with open("a_star_large_table.txt", "w") as file:
+    table = make_table(start, target, obstacles, path, visited)
+    file.write(table)

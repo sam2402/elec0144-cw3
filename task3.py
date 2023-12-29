@@ -110,7 +110,7 @@ def a_star(start: int,  target: int, obstacles: Set[int], filename: str):
 
         # For every neighbouring position in the grid
         for neighbour, edge_f, edge_g in neighbours(position, target, obstacles):
-            neighbour_node = (f + edge_f, g + edge_g, neighbour, position)
+            neighbour_node = (g + edge_f, g + edge_g, neighbour, position)
 
             # Skip the neighbour if it has already been visited
             if neighbour in visited:
@@ -159,6 +159,7 @@ def a_star(start: int,  target: int, obstacles: Set[int], filename: str):
 
     print("Path:", path)
     save_front_set_and_visited_log(front_log, visited_log, filename)
+    print("VISITED SET:", len(visited))
 
 
 # Run the A* algorithm on the 6x6 grid

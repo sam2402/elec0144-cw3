@@ -103,7 +103,7 @@ def a_star(start: int,  target: int, obstacles: Set[int], heuristic):
 
         # For every neighbouring position in the grid
         for neighbour, edge_f, edge_g in neighbours(position, target, obstacles, heuristic):
-            neighbour_node = (f + edge_f, g + edge_g, neighbour, position)
+            neighbour_node = (g + edge_f, g + edge_g, neighbour, position)
 
             # Skip the neighbour if it has already been visited
             if neighbour in visited:
@@ -199,7 +199,7 @@ def make_table(start, target, obstacles, path, visited):
 
 # Runs the pathfinding with both Dijkstra's algorithm and the A* algorithm
 
-NUM_OBSTACLES = 100
+NUM_OBSTACLES = 200
 
 # Generate a random set of obstacle positions
 obstacles = set(random.randint(1, GRID_SIZE * GRID_SIZE)
@@ -221,6 +221,7 @@ while start is None or target is None or start in obstacles or target in obstacl
 path, visited = a_star(start, target, obstacles, heuristic=zero)
 print("Dijkstra explored", len(visited), "positions")
 
+# Save the LaTeX code for the grid to a file
 with open("dijkstra_large_table.txt", "w") as file:
     table = make_table(start, target, obstacles, path, visited)
     file.write(table)
@@ -230,6 +231,7 @@ print()
 path, visited = a_star(start, target, obstacles, heuristic=euclidean_distance)
 print("A* explored", len(visited), "positions")
 
+# Save the LaTeX code for the grid to a file
 with open("a_star_large_table.txt", "w") as file:
     table = make_table(start, target, obstacles, path, visited)
     file.write(table)

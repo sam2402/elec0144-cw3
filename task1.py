@@ -15,8 +15,8 @@ DIRECTIONS = {
 }
 
 LIVING_REWARD = 1
-DISCOUNT_FACTOR = 0.9
-LEARNING_RATE = 0.1
+DISCOUNT_FACTOR = 0.775
+LEARNING_RATE = 0.15
 
 @dataclass
 class Cell:
@@ -57,13 +57,15 @@ def clamp(x: Number , low: Number, high: Number) -> Number:
     '''
     return max(min(x, high), low)
 
-def e_greedy(t: int, rate = 0.01, e_min = 0.1) -> float:
+def e_greedy(t: int, rate: float | None, e_min: float | None) -> float:
     '''
     Epsilon function as used in the epsilon-greedy method
     Its value is constrained to be between 1 and e_min.
     It exponentially decays as t increases
     '''
-    return max(exp(-rate*t), e_min)
+    _rate = 0.016 if rate is None else rate
+    _e_min = 0.7 if e_min is None else e_min
+    return max(exp(-_rate*t), _e_min)
 
 def has_converged(curr_table: TableType, new_table: TableType, precision: int = 4) -> bool:
     '''
@@ -149,11 +151,12 @@ def get_viewable_table(table: TableType) -> list[str]:
     return viewable_table
             
 
-def run_episode(grid: GridType, curr_table: TableType, t: int) -> TableType:
+def run_episode(grid: GridType, curr_table: TableType, t: int, rate: float = None, e_min: float = None) -> TableType:
     '''
     Run a learning episode on the grid, with curr_table as initial Q-table and as the epoch number
     Return the new Q-table after running the Q-learning algorithm until a terminal state is reached.
     '''
+    
     pos = (len(grid)-1, 0) # The starting state is always the bottom left cell
     new_table = copy.deepcopy(curr_table) # curr_table is a compound object so a deepcopy must be created to avoid reusing stale objects
     
@@ -163,7 +166,7 @@ def run_episode(grid: GridType, curr_table: TableType, t: int) -> TableType:
 
         # A random action is taken if a < e(t) or all Q-values for the current state are equal
         # Otherwise the action with the greatest Q-value is used
-        direction = random.choice(list(DIRECTIONS)) if a < e_greedy(t) or len(set(new_table[pos[0]][pos[1]].values())) == 1 else \
+        direction = random.choice(list(DIRECTIONS)) if a < e_greedy(t, rate, e_min) or len(set(new_table[pos[0]][pos[1]].values())) == 1 else \
                     max(new_table[pos[0]][pos[1]], key=new_table[pos[0]][pos[1]].get)
         new_row, new_col = calculate_new_position(grid, pos, direction)
         new_cell = grid[new_row][new_col]
@@ -186,14 +189,13 @@ def run_episode(grid: GridType, curr_table: TableType, t: int) -> TableType:
             return new_table
         pos = (new_row, new_col)
 
-def run_q_learning(grid: GridType) -> (list[str], list[str]):
+def run_q_learning(grid: GridType, rate = None, e_min = None) -> (list[str], list[str]):
     '''
     Given a 2D array of Cell objects (each of which contains data on its reward and whether it is terminal or an obstacle),
     Run the tabular Q-learning algorithm and return:
         - The resultant Q-table showing the Q-values of all the state-action pair after convergence
         - A grid showing the best action for each cell
     '''
-
     # The Q-table is represented as a 2D list that has the same form as the grid-world.
     # Each cell is a dictionary that contains a key for each action - the value for each action is is the Q-value for taking that action
     curr_table = [[{action: 0 for action in DIRECTIONS} for _ in row] for row in grid]
@@ -203,7 +205,7 @@ def run_q_learning(grid: GridType) -> (list[str], list[str]):
     # While at least one Q-value has changed between the previous and current iteration, run an episode of Q-learning
     # Increment the value of t for each iteration so the e-greedy function decays
     while True:
-        new_table = run_episode(grid, curr_table, t)
+        new_table = run_episode(grid, curr_table, t, rate, e_min)
         if has_converged(curr_table, new_table):
             # When all values in the Q-table have converged, return a human readable version of the Q-table
             # and a grid where each cell shows the action with the highest Q value
@@ -233,3 +235,141 @@ if __name__ == "__main__":
     print("")
     print(("\t".join(["cell", *DIRECTIONS])).expandtabs(12))
     print(*table, sep="\n")
+
+    '''
+    Uncomment the code below to produce a graph showing the correctness of the algorithm for varying e_min and and decay rate values
+
+    WARNING: Executing this code will take ~45 minutes
+    '''
+    # import matplotlib.pyplot as plt
+    # import numpy as np
+    # from matplotlib import cm
+    # from matplotlib.ticker import LinearLocator
+
+    # RUNS = 100
+    # rates = np.arange(0.005, 0.02, 0.001)
+    # e_mins = np.arange(0.05, 0.8, 0.02)
+    # X = []
+    # Y = []
+    # correctness = []
+    # i = 0
+    # for rate in rates:
+    #     print("Total runs: ", i)
+    #     for e_min in e_mins:
+    #         correct = 0
+    #         for _ in range(RUNS):
+    #             i += 1
+    #             table, action_grid = run_q_learning([
+    #                 [Cell(True, False, 0), Cell(True,  False, 0), Cell(True, False, 0), Cell(True, True,  10)],
+    #                 [Cell(True, False, 0), Cell(False, False, 0), Cell(True, False, 0), Cell(True, True, -10)],
+    #                 [Cell(True, False, 0), Cell(True,  False, 0), Cell(True, False, 0), Cell(True, False, 0) ],
+    #             ])
+    #             if action_grid[0] ==  "right\tright\tright\t*" and \
+    #             action_grid[1] ==  "up\t*\tup\t*" and \
+    #             (action_grid[2] == "up\tright\tup\tleft" or action_grid[2] == "right\tright\tup\tleft"):
+    #                 correct += 1
+    #         X.append(rate)
+    #         Y.append(e_min)
+    #         correctness.append((correct*100)/RUNS)
+
+    # fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
+
+    # Z = correctness
+
+    # surf = ax.plot_trisurf(X, Y, Z, cmap=cm.coolwarm_r,
+    #                     linewidth=0, antialiased=False)
+
+    # ax.set_zlim(88, 100)
+    # ax.zaxis.set_major_locator(LinearLocator(10))
+    # ax.zaxis.set_major_formatter('{x:.02f}')
+
+    # fig.colorbar(surf, shrink=0.5, aspect=5)
+    # ax.set_xlabel("Rate")
+    # ax.set_ylabel("ε min")
+    # ax.set_zlabel("Percentage correct")
+
+    # plt.show()
+
+    '''
+    Uncomment the code below to produce a graph showing the correctness of the algorithm for varying learning rates
+
+    WARNING: Executing this code will take ~1 minute
+    '''
+    # import matplotlib.pyplot as plt
+    # import numpy as np
+
+    # RUNS = 100
+    # rates = np.arange(0.05, 0.9, 0.05)
+    # correctness = []
+    # i = 0
+    # for rate in rates:
+    #     print("Total runs: ", i)
+    #     correct = 0
+    #     LEARNING_RATE = rate
+    #     for _ in range(RUNS):
+    #         i += 1
+    #         table, action_grid = run_q_learning([
+    #             [Cell(True, False, 0), Cell(True,  False, 0), Cell(True, False, 0), Cell(True, True,  10)],
+    #             [Cell(True, False, 0), Cell(False, False, 0), Cell(True, False, 0), Cell(True, True, -10)],
+    #             [Cell(True, False, 0), Cell(True,  False, 0), Cell(True, False, 0), Cell(True, False, 0) ],
+    #         ])
+    #         if action_grid[0] ==  "right\tright\tright\t*" and \
+    #         action_grid[1] ==  "up\t*\tup\t*" and \
+    #         (action_grid[2] == "up\tright\tup\tleft" or action_grid[2] == "right\tright\tup\tleft"):
+    #             correct += 1
+    #     correctness.append((correct*100)/RUNS)
+
+    # trend = np.polyfit(rates, correctness, 5)
+
+    # plt.plot(rates, correctness, 'o')
+
+    # trendpoly = np.poly1d(trend) 
+
+    # plt.plot(rates, trendpoly(rates))
+
+    # plt.xlabel("Learning Rate")
+    # plt.ylabel("Percentage Correct")
+
+    # plt.show()
+
+    '''
+    Uncomment the code below to produce a graph showing the correctness of the algorithm for varying discount factors
+
+    WARNING: Executing this code will take ~1 minute
+    '''
+    # import matplotlib.pyplot as plt
+    # import numpy as np
+
+    # RUNS = 100
+    # discount_factors = np.arange(0.5, 0.99, 0.025)
+    # correctness = []
+    # i = 0
+    # for discount_factor in discount_factors:
+    #     print("Total runs: ", i)
+    #     correct = 0
+    #     DISCOUNT_FACTOR = discount_factor
+    #     for _ in range(RUNS):
+    #         i += 1
+    #         table, action_grid = run_q_learning([
+    #             [Cell(True, False, 0), Cell(True,  False, 0), Cell(True, False, 0), Cell(True, True,  10)],
+    #             [Cell(True, False, 0), Cell(False, False, 0), Cell(True, False, 0), Cell(True, True, -10)],
+    #             [Cell(True, False, 0), Cell(True,  False, 0), Cell(True, False, 0), Cell(True, False, 0) ],
+    #         ])
+    #         if action_grid[0] ==  "right\tright\tright\t*" and \
+    #         action_grid[1] ==  "up\t*\tup\t*" and \
+    #         (action_grid[2] == "up\tright\tup\tleft" or action_grid[2] == "right\tright\tup\tleft"):
+    #             correct += 1
+    #     correctness.append((correct*100)/RUNS)
+
+    # trend = np.polyfit(discount_factors, correctness, 5)
+
+    # plt.plot(discount_factors, correctness, 'o')
+
+    # trendpoly = np.poly1d(trend) 
+
+    # plt.plot(discount_factors, trendpoly(discount_factors))
+
+    # plt.xlabel("Discount Factor")
+    # plt.ylabel("Percentage Correct")
+
+    # plt.show()

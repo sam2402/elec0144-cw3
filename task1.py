@@ -60,7 +60,7 @@ def clamp(x: Number, low: Number, high: Number) -> Number:
     '''
     return max(min(x, high), low)
 
-def e_greedy(t: int, rate: float | None, e_min: float | None) -> float:
+def e_greedy(t: int, rate: float = None, e_min: float = None) -> float:
     '''
     Epsilon function as used in the epsilon-greedy method
     Its value is constrained to be between 1 and e_min.
@@ -180,8 +180,8 @@ def run_episode(grid: GridType, curr_table: TableType, t: int, rate: float = Non
         # Otherwise the action with the greatest Q-value is used
         direction = random.choice(list(DIRECTIONS.keys())) if a < e_greedy(t) or len(set(new_table[pos[0]][pos[1]].values())) == 1 else \
             max(new_table[pos[0]][pos[1]], key=new_table[pos[0]][pos[1]].get)
-        new_pos = calculate_new_position(grid, pos, direction)
-        new_cell = grid[new_pos[0]][new_pos[1]]
+        new_row, new_col = calculate_new_position(grid, pos, direction)
+        new_cell = grid[new_row][new_col]
 
         # Calculate the reward for the action by subtracting the living reward from the cell reward if the new state is not terminal
         reward = new_cell.reward - \
@@ -192,7 +192,7 @@ def run_episode(grid: GridType, curr_table: TableType, t: int, rate: float = Non
 
         # sample_q is the reward of going from the current state to the next state plus the discounted Q-value of the best action when in the next state
         sample_q = reward + \
-            (DISCOUNT_FACTOR*max(new_table[new_pos[0]][new_pos[1]].values()))
+            (DISCOUNT_FACTOR*max(new_table[new_row][new_col].values()))
 
         # Adjust the Q-value by the learning rate multiplied by the difference between the sample and current Q-value
         new_table[pos[0]][pos[1]][direction] += LEARNING_RATE*(sample_q-curr_q)
@@ -210,7 +210,7 @@ def run_q_learning(grid: GridType, rate = None, e_min = None) -> (list[str], lis
         - The resultant Q-table showing the Q-values of all the state-action pair after convergence
         - A grid showing the best action for each cell
     '''
-    
+
     # The Q-table is represented as a 2D list that has the same form as the grid-world.
     # Each cell is a dictionary that contains a key for each action - the value for each action is is the Q-value for taking that action
     curr_table = [[{action: 0 for action in DIRECTIONS}

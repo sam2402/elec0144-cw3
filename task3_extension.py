@@ -221,6 +221,8 @@ while start is None or target is None or start in obstacles or target in obstacl
 path, visited = a_star(start, target, obstacles, heuristic=zero)
 print("Dijkstra explored", len(visited), "positions")
 
+dijkstra_visited = len(visited)
+
 # Save the LaTeX code for the grid to a file
 with open("dijkstra_large_table.txt", "w") as file:
     table = make_table(start, target, obstacles, path, visited)
@@ -231,7 +233,16 @@ print()
 path, visited = a_star(start, target, obstacles, heuristic=euclidean_distance)
 print("A* explored", len(visited), "positions")
 
+a_star_visited = len(visited)
+
 # Save the LaTeX code for the grid to a file
 with open("a_star_large_table.txt", "w") as file:
     table = make_table(start, target, obstacles, path, visited)
     file.write(table)
+
+
+# Compare the number of positions explored by Dijkstra's algorithm and the A* algorithm
+visited_percentage_difference = (
+    dijkstra_visited - a_star_visited) / dijkstra_visited * 100
+print("\nA* explored", str(round(visited_percentage_difference, 2)) + "%",
+      "fewer positions than Dijkstra's algorithm")

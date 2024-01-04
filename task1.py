@@ -60,7 +60,7 @@ def clamp(x: Number, low: Number, high: Number) -> Number:
     '''
     return max(min(x, high), low)
 
-def e_greedy(t: int, rate: float = None, e_min: float = None) -> float:
+def e_greedy(t: int, rate: float | None, e_min: float | None) -> float:
     '''
     Epsilon function as used in the epsilon-greedy method
     Its value is constrained to be between 1 and e_min.
@@ -178,7 +178,7 @@ def run_episode(grid: GridType, curr_table: TableType, t: int, rate: float = Non
 
         # A random action is taken if a < e(t) or all Q-values for the current state are equal
         # Otherwise the action with the greatest Q-value is used
-        direction = random.choice(list(DIRECTIONS.keys())) if a < e_greedy(t) or len(set(new_table[pos[0]][pos[1]].values())) == 1 else \
+        direction = random.choice(list(DIRECTIONS.keys())) if a < e_greedy(t, rate, e_min) or len(set(new_table[pos[0]][pos[1]].values())) == 1 else \
             max(new_table[pos[0]][pos[1]], key=new_table[pos[0]][pos[1]].get)
         new_row, new_col = calculate_new_position(grid, pos, direction)
         new_cell = grid[new_row][new_col]

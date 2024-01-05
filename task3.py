@@ -159,7 +159,6 @@ def a_star(start: int,  target: int, obstacles: Set[int], filename: str):
 
     print("Path:", path)
     save_front_set_and_visited_log(front_log, visited_log, filename)
-    print("VISITED SET:", len(visited))
 
 
 # Run the A* algorithm on the 6x6 grid

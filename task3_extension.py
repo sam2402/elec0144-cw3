@@ -218,6 +218,7 @@ while start is None or target is None or start in obstacles or target in obstacl
 # Dijkstra
 # (Using the a_star function with a heuristic that always returns 0
 # is equivalent to Dijkstra's algorithm)
+print("\nDijkstra's Algorithm:")
 path, visited = a_star(start, target, obstacles, heuristic=zero)
 print("Dijkstra explored", len(visited), "positions")
 
@@ -229,7 +230,7 @@ with open("dijkstra_large_table.txt", "w") as file:
     file.write(table)
 
 # A*
-print()
+print("\nA* Algorithm:")
 path, visited = a_star(start, target, obstacles, heuristic=euclidean_distance)
 print("A* explored", len(visited), "positions")
 

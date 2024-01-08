@@ -161,18 +161,25 @@ def get_viewable_table(table: TableType) -> list[str]:
             cell_number += 1
     return viewable_table
 
+def pos_to_cell(pos):
+    return ((2-pos[0])*4) + pos[1] + 1
+
+def rnd_int(x):
+    return int(x) if float(x).is_integer() else round(x, 4)
+
 
 def run_episode(grid: GridType, curr_table: TableType, t: int, rate: float = None, e_min: float = None) -> TableType:
     '''
     Run a learning episode on the grid, with curr_table as initial Q-table and as the epoch number
     Return the new Q-table after running the Q-learning algorithm until a terminal state is reached.
     '''
-    
+
     pos = (len(grid)-1, 0)  # The starting state is always the bottom left cell
     # curr_table is a compound object so a deepcopy must be created to avoid reusing stale objects
     new_table = copy.deepcopy(curr_table)
 
     # Perform value iterations to solve the MDP until a terminal state is reached
+    i = 0
     while True:
         a = random.random()  # A random number between 0 and 1
 
@@ -193,15 +200,56 @@ def run_episode(grid: GridType, curr_table: TableType, t: int, rate: float = Non
         # sample_q is the reward of going from the current state to the next state plus the discounted Q-value of the best action when in the next state
         sample_q = reward + \
             (DISCOUNT_FACTOR*max(new_table[new_row][new_col].values()))
+        
+        if t < 3 and i < 3:
+            print(f"\\textbf{{Iteration {i+1}:}}")
+            print("\\begin{flalign*}")
+            print(f"\t \\text{{Current cell}} && s &= {pos_to_cell(pos)} &\\\\")
+            print(f"\t \\text{{Random number}} && r &= {round(a, 4)} &\\\\")
+            if a < e_greedy(t, rate, e_min):
+                print(f"\t && r < {rnd_int(e_greedy(t, rate, e_min))} &\implies \\text{{\\textit{{Random action taken}}}} & \\\\")
+            else:
+                raise("NOT DOING THIS")
+
+            print(f"\t \\text{{Action}} && a &= {direction} &\implies\\\\")
+            print(f"\t \\text{{Next cell}} && s' &= {pos_to_cell((new_row, new_col))} &\\\\")
+            next_set = set(map(rnd_int, new_table[new_row][new_col].values()))
+            print(f"\t \\text{{Next Q-Values}} && Q^*({pos_to_cell((new_row, new_col))}, a') &=\{str(next_set)[:-1]}\\", end=""); print("} & \implies\\\\ ")
+            print(f"\t \\text{{Max Q-Value}} && max\,Q^*(s', a') &={max(next_set)} &\\\\")
+            print(f"\t \\text{{Reward}} && R({pos_to_cell(pos)},\,{direction},\,{pos_to_cell((new_row, new_col))}) &= {rnd_int(reward)} &\\\\")
+            print(f"\t \\text{{Current}} && Q_", end=""); print("{i}", end=""); print(f"({pos_to_cell(pos)}, {direction}) &= {rnd_int(curr_q)} &\\\\")
+            print(f"\t \\text{{Sample}} && Q_i^s({pos_to_cell(pos)},{direction}) &= {rnd_int(reward)} + ({DISCOUNT_FACTOR} \\times {max(next_set)}) = {rnd_int(sample_q)} &\\\\")
+            
 
         # Adjust the Q-value by the learning rate multiplied by the difference between the sample and current Q-value
         new_table[pos[0]][pos[1]][direction] += LEARNING_RATE*(sample_q-curr_q)
 
+        if t < 3 and i < 3:
+            print("\t \\text{Update} && Q_{i+1}", end=""); print(f"({pos_to_cell(pos)}, {direction}) ", end=""); print("&= Q_{i}", end="")
+            print(f"({pos_to_cell(pos)}, {direction}) + \\alpha\,(Q_i^s({pos_to_cell(pos)}, {direction}) - ", end=""); print("Q_{i}", end="")
+            print(f"({pos_to_cell(pos)}, {direction})) &\\\\")
+
+            print(f"\t &&& = {rnd_int(curr_q)} + {LEARNING_RATE} \\times ({rnd_int(sample_q)} - {rnd_int(curr_q)}) = \mathbf{{{rnd_int(new_table[pos[0]][pos[1]][direction])}}} &\\\\")
+            print(f"\\end{{flalign*}}")
+
+        if i==2 and t < 3:
+            print("")
+            print(f"Q-TABLE after first three iterations of episode {t}")
+            print(("\t".join(["cell", *DIRECTIONS])).expandtabs(12))
+            print(*get_viewable_table(new_table), sep="\n")
+
+        if t < 3 and i < 3:
+            print("")       
+
         # If the next state is terminal then return the current Q-table
         # Otherwise set the current state to be the new state and perform another iteration
         if new_cell.terminal == True:
+            if t < 3:
+                print("")
             return new_table
         pos = (new_row, new_col)
+        i += 1
+
 
 def run_q_learning(grid: GridType, rate = None, e_min = None) -> (list[str], list[str]):
     '''
